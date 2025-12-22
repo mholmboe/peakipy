@@ -1,5 +1,5 @@
 """
-Setup script for Profile Fitting Application.
+Setup script for the PeakPilot profile fitting application.
 """
 
 from setuptools import setup, find_packages
@@ -11,7 +11,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
     requirements = [line.strip() for line in fh if line.strip() and not line.startswith("#")]
 
 setup(
-    name="profile-fitting",
+    name="peakpilot",
     version="1.0.0",
     author="mholmboe",
     author_email="",
@@ -37,8 +37,8 @@ setup(
     install_requires=requirements,
     entry_points={
         "console_scripts": [
-            "profile-fitter=peakpilot_gui:main",
-            "profile-fitter-batch=peakpilot_batch:main",
+            "peakpilot=peakpilot_GUI:main",
+            "peakpilot-batch=peakpilot_batch:main",
         ],
     },
     include_package_data=True,

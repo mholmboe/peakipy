@@ -1,6 +1,6 @@
-# Profile Fitting Application
+# PeakPilot profile fitting application
 
-GUI application for fitting experimental X/Y data with multiple theoretical peak shapes and advanced baseline correction. A CLI batch processing option is also available for automated workflows.
+A GUI application for fitting experimental X/Y data with multiple theoretical peak shapes and advanced baseline correction. A CLI batch processing option is also available for automated workflows.
 
 ## Features
 
@@ -95,7 +95,7 @@ The application exports two files for every fit:
 
 ## Project Structure
 ```text
-ProfileFitting/
+PeakPilot/
 ├── peakpilot_GUI.py     # Application entry point (PySide6)
 ├── requirements.txt     # Python dependencies
 ├── core/                # Scientific logic (Math & Fitting)
