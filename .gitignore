@@ -1,0 +1,21 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+
+# IDE/editor
+.idea/
+.vscode/
+
+# Logs and artifacts
+logs/
+*.log
+
+# Helper scripts (local convenience)
+update_github.sh
