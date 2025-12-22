@@ -77,7 +77,7 @@ pip install -r requirements.txt
 
 ### Launching the App
 ```bash
-python main.py
+python peakpilot_GUI.py
 ```
 
 ### Basic Workflow
@@ -96,7 +96,7 @@ The application exports two files for every fit:
 ## Project Structure
 ```text
 ProfileFitting/
-├── main.py              # Application entry point (PySide6)
+├── peakpilot_GUI.py     # Application entry point (PySide6)
 ├── requirements.txt     # Python dependencies
 ├── core/                # Scientific logic (Math & Fitting)
 │   ├── baseline/        # Baseline algorithms
