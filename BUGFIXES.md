@@ -45,7 +45,7 @@ finally:
 - `gui_qt/plot_panel.py`: Matplotlib canvas integration.
 - `gui_qt/results_panel.py`: Fit statistics display.
 
-## Recent Fixes (December 2024)
+## Recent Fixes (December 2024) 
 
 ### 5. Component Count Desync (FIXED ✓)
 **Problem:** Changing the number of components (e.g., 3 → 2) still used the old component count for fitting.

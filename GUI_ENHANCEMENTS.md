@@ -9,7 +9,7 @@ All fitting controls are now hosted in a single, resizable sidebar. This ensures
 
 ## Technical Layout
 The controls follow a logical top-to-bottom data flow:
-1.  **Data Source**: File operations (Load/Export).
+1.  **Data Source**: File operations (Load/Export). 
 2.  **Data Preprocessing**: Range and interpolation.
 3.  **Baseline Correction**: Background subtraction with independent **Calculation Range** selection and **Simultaneous Optimization** support for baseline parameters (ASLS λ/p, polynomial & linear coefficients, rolling-ball radius, Shirley endpoint offsets). Linear now includes slope/intercept sliders for manual seeding. A **Manual** mode lets you click up to 15 control points (linear or cubic interpolation) to define a custom baseline and optionally optimize the point heights.
 4.  **Profile Components**: Peak parameterization and manual placement.

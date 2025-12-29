@@ -1,5 +1,5 @@
 """
-Setup script for the PeakiPy profile fitting application.
+Setup script for the PeakiPy profile fitting application. 
 """
 
 from setuptools import setup, find_packages
