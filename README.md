@@ -1,4 +1,4 @@
-# PeakiPy v0.2.0 v0.2.0 profile fitting application
+# PeakiPy v0.2.0 v0.2.0 v0.2.0 profile fitting application
 
 A GUI application for fitting experimental X/Y data with multiple theoretical peak shapes and advanced baseline correction. A CLI batch processing option is also available for automated workflows.
 
