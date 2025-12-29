@@ -1,7 +1,7 @@
 # Data Management and Preprocessing
 
 ## Overview
-The application handles the full data lifecycle from import and noise reduction to final fit results export, now unified in a modern sidebar-based control panel.
+The application handles the full data lifecycle from import and noise reduction to final fit results export, now unified in a modern sidebar-based control panel. 
 
 ## Key Features
 

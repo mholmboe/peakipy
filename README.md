@@ -5,7 +5,7 @@ A GUI application for fitting experimental X/Y data with multiple theoretical pe
 ## Features
 
 ### Advanced GUI (PySide6)
-- **Fluid Layout**: Resizable control panels and high-resolution matplotlib charts.
+- **Fluid Layout**: Resizable control panels and high-resolution matplotlib charts. 
 - **Live Preview**: Real-time plot updates for both baseline parameters and peak components as you adjust sliders.
 - **Visualized Progress**: Watch the baseline and corrected data evolve on the plot *during* the optimization loop for immediate feedback.
 - **Interpreted Results**: Instant display of R², RMSE, and full fitting reports with explicit baseline parameter summaries.

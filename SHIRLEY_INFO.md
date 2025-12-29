@@ -6,7 +6,7 @@ A new baseline correction method specifically for X-ray Photoelectron Spectrosco
 
 **File**: `core/baseline/shirley.py`
 
-The Shirley background algorithm assumes the background at any point is proportional to the total peak area above that point, accounting for inelastic scattering in XPS measurements.
+The Shirley background algorithm assumes the background at any point is proportional to the total peak area above that point, accounting for inelastic scattering in XPS measurements. 
 
 ### Algorithm
 
