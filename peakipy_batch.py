@@ -2,7 +2,7 @@
 Batch fitting script for the Profile Fitting Application.
 
 Usage:
-    python batch_fit.py "data/*.txt" --baseline asls --lam 1e5 --p 0.01 \
+    python peakipy_batch.py "data/*.txt" --baseline asls --lam 1e5 --p 0.01 \
         --profile gaussian --components 2 --centers 10,20 --sigmas 1,1 \
         --amplitudes 1,0.8 --normalize --interp_step 0.1
 

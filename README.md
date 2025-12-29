@@ -1,4 +1,4 @@
-# PeakPilot profile fitting application
+# PeakiPy profile fitting application
 
 A GUI application for fitting experimental X/Y data with multiple theoretical peak shapes and advanced baseline correction. A CLI batch processing option is also available for automated workflows.
 
@@ -43,9 +43,9 @@ A GUI application for fitting experimental X/Y data with multiple theoretical pe
 7. **Export**: Save `<base>_results.txt` (report + stats) and `<base>_data.txt` (X, Y_Exp, Y_Fit, Residual, Comp_1…Comp_N).
 
 ## CLI Batch Mode
-You can run fits in batch via the CLI (no GUI) with `batch_fit.py`. Example:
+You can run fits in batch via the CLI (no GUI) with `peakipy_batch.py`. Example:
 ```bash
-python batch_fit.py "data/*.txt" \
+python peakipy_batch.py "data/*.txt" \
   --baseline asls --lam 1e5 --p 0.01 \
   --calc_min 5 --calc_max 15 \
   --fit_min 0 --fit_max 40 --interp_step 0.1 \
@@ -77,7 +77,7 @@ pip install -r requirements.txt
 
 ### Launching the App
 ```bash
-python peakpilot_GUI.py
+python peakipy_gui.py
 ```
 
 ### Basic Workflow
@@ -95,8 +95,8 @@ The application exports two files for every fit:
 
 ## Project Structure
 ```text
-PeakPilot/
-├── peakpilot_GUI.py     # Application entry point (PySide6)
+peakipy/
+├── peakipy_gui.py       # Application entry point (PySide6)
 ├── requirements.txt     # Python dependencies
 ├── core/                # Scientific logic (Math & Fitting)
 │   ├── baseline/        # Baseline algorithms
