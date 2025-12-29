@@ -471,9 +471,11 @@ class QtMainWindow(QMainWindow):
         y_fit_total = y_eval
         residual = self.fitter.y_corrected - y_eval
 
+        baseline_for_plot = self.fitter.baseline_raw if getattr(self.fitter, "baseline_raw", None) is not None else self.fitter.baseline
         self.plot_panel.update_fit_plot(self.fitter.x, y_plot, y_fit_total, 
                                       residual, components=comps, 
-                                      baseline=self.fitter.baseline, show_fit=False)
+                                      baseline=baseline_for_plot, show_fit=False,
+                                      y_raw=self.y_data)
         self.results_panel.display_results(stats, "Evaluation only (no fit report)")
 
     def _on_eval_error(self, message):
@@ -554,9 +556,12 @@ class QtMainWindow(QMainWindow):
             y_fit_total = result.best_fit
             residual_plot = result.residual
 
+            # Plot original-scale baseline if available
+            baseline_for_plot = self.fitter.baseline_raw if getattr(self.fitter, "baseline_raw", None) is not None else self.fitter.baseline
             self.plot_panel.update_fit_plot(self.fitter.x, y_plot, y_fit_total, 
                                           residual_plot, components=plot_comps, 
-                                          baseline=self.fitter.baseline, show_fit=True)
+                                          baseline=baseline_for_plot, show_fit=True,
+                                          y_raw=self.y_data)
             self.results_panel.display_results(stats, report)
             
             # Sync sliders with fitted results - BLOCK SIGNALS to prevent feedback loop

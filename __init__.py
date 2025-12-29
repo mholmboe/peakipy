@@ -5,5 +5,5 @@ A Python GUI and optionally a CLI batchapplication for fitting experimental data
 theoretical profiles and various baseline correction methods.
 """
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 __author__ = "M. Holmboe"
