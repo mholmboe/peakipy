@@ -78,7 +78,7 @@ class QtMainWindow(QMainWindow):
     """
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("PeakiPy v0.2.0 v0.2.0 v0.2.0 v0.2.0 Baseline/Profile Fitting App")
+        self.setWindowTitle("PeakiPy Baseline/Profile Fitting App")
         self.resize(1450, 950)
         
         # Data storage
