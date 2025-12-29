@@ -12,7 +12,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 
 setup(
     name="peakipy",
-    version="1.0.0",
+    version="0.1.2",
     author="mholmboe",
     author_email="",
     description="A PySide6-based application for fitting experimental XRD data with multiple theoretical profiles",

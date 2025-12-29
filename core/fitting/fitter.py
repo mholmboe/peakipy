@@ -29,6 +29,8 @@ class ProfileFitter:
         Baseline correction parameters
     baseline : ndarray or None
         Fitted baseline
+    baseline_raw : ndarray or None
+        Baseline on the original (unnormalized) scale
     result : lmfit.ModelResult or None
         Fitting result
     """
@@ -52,6 +54,7 @@ class ProfileFitter:
         self.baseline_method = None
         self.baseline_params = {}
         self.baseline = None
+        self.baseline_raw = None
         self.norm_factor = 1.0  # Normalization factor for intensity scaling
         
         # Negative penalty settings
@@ -144,6 +147,7 @@ class ProfileFitter:
         """
         if self.baseline_method is None:
             self.baseline = np.zeros_like(self.y)
+            self.baseline_raw = self.baseline.copy()
             self.y_corrected = self.y.copy()
             return self.baseline, self.y_corrected
 
@@ -189,6 +193,7 @@ class ProfileFitter:
             # Full range
             self.baseline = baseline_sub
             
+        self.baseline_raw = self.baseline.copy()
         self.y_corrected = self.y - self.baseline
         
         # Store additional baseline result info (coefficients, etc.)
@@ -242,6 +247,7 @@ class ProfileFitter:
         Deprecated: Use normalize_raw_data() instead for pre-baseline normalization.
         
         Normalize baseline-corrected data to have maximum intensity of 1.0.
+        Baseline stays on the original scale (baseline_raw) per user expectation.
         """
         max_intensity = np.max(self.y_corrected)
         if max_intensity > 0:
@@ -250,9 +256,6 @@ class ProfileFitter:
                 self.norm_factor = max_intensity
             
             self.y_corrected = self.y_corrected / max_intensity
-            # Also normalize baseline if it exists so it plots correctly on the same scale
-            if self.baseline is not None:
-                self.baseline = self.baseline / max_intensity
         else:
             if self.norm_factor == 1.0:
                 self.norm_factor = 1.0
@@ -299,6 +302,24 @@ class ProfileFitter:
         has_bl_params = self._params is not None and ('bl_c0' in self._params or 'bl_slope' in self._params)
         needs_bl_params = baseline_info is not None
         
+        # If we already have a baseline from a prior run, use it to seed baseline parameters
+        if use_simultaneous and is_parametric_baseline and self.baseline_raw is not None:
+            try:
+                if self.baseline_method == 'linear':
+                    # Fit a line to the stored baseline to seed slope/intercept
+                    coeffs = np.polyfit(self.x, self.baseline_raw, 1)
+                    self.baseline_params['slope'] = coeffs[0]
+                    self.baseline_params['intercept'] = coeffs[1]
+                elif self.baseline_method == 'polynomial':
+                    degree = baseline_info.get('degree', self.baseline_params.get('degree', 2))
+                    coeffs_desc = np.polyfit(self.x, self.baseline_raw, degree)
+                    # np.polyfit returns highest degree first; convert to ascending order used elsewhere
+                    self.baseline_params['coeffs'] = list(coeffs_desc[::-1])
+                    self.baseline_params['degree'] = degree
+            except Exception:
+                # If seeding fails, fall back to existing params
+                pass
+
         if self._model is None or self._params is None or has_bl_params != needs_bl_params:
             from .model_builder import build_composite_model
             self._model, self._params = build_composite_model(self.components, baseline_info)
@@ -309,6 +330,15 @@ class ProfileFitter:
                 self._params['bl_slope'].set(value=self.baseline_params['slope'])
             if 'bl_intercept' in self._params and 'intercept' in self.baseline_params:
                 self._params['bl_intercept'].set(value=self.baseline_params['intercept'])
+        # Seed polynomial baseline params if provided
+        if self.baseline_method == 'polynomial' and self._params is not None:
+            degree = self.baseline_params.get('degree', baseline_info.get('degree') if baseline_info else 2)
+            coeffs = self.baseline_params.get('coeffs')
+            if coeffs:
+                for i in range(min(len(coeffs), degree + 1)):
+                    pname = f'bl_c{i}'
+                    if pname in self._params:
+                        self._params[pname].set(value=coeffs[i])
         
         # Add AsLS hyper-parameters if needed
         if use_simultaneous and self.baseline_method == 'asls':
