@@ -107,6 +107,55 @@ peakipy/
 └── utils/               # Logging & file helpers
 ```
 
+### Architecture Overview
+
+```mermaid
+graph TB
+    subgraph Entry Points
+        GUI[peakipy_gui.py]
+        CLI[peakipy_batch.py]
+    end
+    
+    subgraph GUI Layer
+        MW[main_window.py]
+        PP[plot_panel.py]
+        CP[control_panel.py]
+        BP[baseline_panel.py]
+        RP[results_panel.py]
+        COMP[component_panel.py]
+    end
+    
+    subgraph Core Layer
+        FIT[fitting/fitter.py]
+        MODEL[fitting/model_builder.py]
+        STAT[fitting/statistics.py]
+        INIT[fitting/initializers.py]
+    end
+    
+    subgraph Baseline Methods
+        ASLS[asls.py]
+        POLY[polynomial.py]
+        LIN[linear.py]
+        RB[rolling_ball.py]
+        SHIRLEY[shirley.py]
+        MANUAL[manual.py]
+    end
+    
+    subgraph Profiles
+        GAUSS[gaussian.py]
+        LORENTZ[lorentzian.py]
+        VOIGT[voigt.py]
+    end
+    
+    GUI --> MW
+    CLI --> FIT
+    MW --> PP & CP & BP & RP & COMP
+    MW --> FIT
+    FIT --> MODEL & STAT
+    FIT --> ASLS & POLY & LIN & RB & SHIRLEY & MANUAL
+    MODEL --> GAUSS & LORENTZ & VOIGT
+```
+
 ## License
 MIT License
 
