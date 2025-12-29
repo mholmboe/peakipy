@@ -1,5 +1,5 @@
 """
-Linear baseline correction.
+Linear baseline correction. 
 """
 
 import numpy as np

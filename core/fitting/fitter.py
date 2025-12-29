@@ -1,5 +1,5 @@
 """
-Main profile fitter class using lmfit.
+Main profile fitter class using lmfit. 
 """
 
 import numpy as np

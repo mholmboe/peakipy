@@ -1,5 +1,5 @@
 """
-Results Display Panel for PySide6.
+Results Display Panel for PySide6. 
 """
 
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 

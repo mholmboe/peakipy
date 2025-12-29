@@ -1,5 +1,5 @@
 """
-Shirley background correction for XPS data analysis.
+Shirley background correction for XPS data analysis. 
 """
 
 import numpy as np

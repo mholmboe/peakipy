@@ -1,5 +1,5 @@
 """
-Data import utilities for reading experimental data files.
+Data import utilities for reading experimental data files. 
 """
 
 import numpy as np

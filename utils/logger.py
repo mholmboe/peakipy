@@ -1,5 +1,5 @@
 """
-Error logging utility for the application.
+Error logging utility for the application. 
 """
 
 import logging

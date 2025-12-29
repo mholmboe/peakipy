@@ -1,5 +1,5 @@
 """
-Custom synchronized Slider + Spinbox widget for parameter control.
+Custom synchronized Slider + Spinbox widget for parameter control. 
 """
 
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QSlider, QDoubleSpinBox, QLabel

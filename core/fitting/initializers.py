@@ -1,5 +1,5 @@
 """
-Peak parameter initialization methods.
+Peak parameter initialization methods. 
 
 Provides different strategies for initializing component parameters
 (center, width, amplitude) before fitting.

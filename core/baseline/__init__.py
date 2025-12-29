@@ -1,5 +1,5 @@
 """
-Baseline correction methods for profile fitting.
+Baseline correction methods for profile fitting. 
 
 This module provides various baseline correction algorithms:
 - AsLS (Asymmetric Least Squares)

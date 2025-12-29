@@ -1,5 +1,5 @@
 """
-Profile functions for peak fitting.
+Profile functions for peak fitting. 
 
 This module provides standard peak profile functions (Gaussian, Lorentzian, Voigt)
 and utilities for managing custom profiles.

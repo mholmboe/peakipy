@@ -1,5 +1,5 @@
 """
-Baseline Correction Panel for PySide6.
+Baseline Correction Panel for PySide6. 
 """
 
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QGroupBox, QCheckBox, 

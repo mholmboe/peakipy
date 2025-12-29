@@ -1,5 +1,5 @@
 """
-Voigt profile function.
+Voigt profile function. 
 """
 
 import numpy as np

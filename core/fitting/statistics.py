@@ -1,5 +1,5 @@
 """
-Goodness-of-fit statistics calculator.
+Goodness-of-fit statistics calculator. 
 """
 
 import numpy as np

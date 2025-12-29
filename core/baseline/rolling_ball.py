@@ -1,5 +1,5 @@
 """
-Rolling ball baseline correction.
+Rolling ball baseline correction. 
 """
 
 import numpy as np
