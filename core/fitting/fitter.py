@@ -322,27 +322,46 @@ class ProfileFitter:
             from .model_builder import build_composite_model
             self._model, self._params = build_composite_model(self.components, baseline_info)
         
-        # Seed linear baseline params from UI if provided
+        # Calculate data-driven bounds for baseline parameters
+        y_span = np.max(y_data) - np.min(y_data)
+        x_span = np.max(self.x) - np.min(self.x)
+        x_mean = np.mean(self.x)
+        
+        # Seed linear baseline params from UI if provided with bounds
         if self.baseline_method == 'linear' and self._params is not None:
-            if 'bl_slope' in self._params and 'slope' in self.baseline_params:
-                self._params['bl_slope'].set(value=self.baseline_params['slope'])
-            if 'bl_intercept' in self._params and 'intercept' in self.baseline_params:
-                self._params['bl_intercept'].set(value=self.baseline_params['intercept'])
-        # Seed polynomial baseline params if provided
+            # Slope bounds: limit to reasonable range based on data
+            max_slope = 2 * y_span / x_span if x_span > 0 else 1.0
+            if 'bl_slope' in self._params:
+                slope_val = self.baseline_params.get('slope', 0)
+                self._params['bl_slope'].set(value=slope_val, min=-max_slope, max=max_slope)
+            if 'bl_intercept' in self._params:
+                intercept_val = self.baseline_params.get('intercept', 0)
+                max_intercept = 2 * np.max(np.abs(y_data))
+                self._params['bl_intercept'].set(value=intercept_val, min=-max_intercept, max=max_intercept)
+        
+        # Seed polynomial baseline params if provided with bounds
         if self.baseline_method == 'polynomial' and self._params is not None:
             degree = self.baseline_params.get('degree', baseline_info.get('degree') if baseline_info else 2)
             coeffs = self.baseline_params.get('coeffs')
-            if coeffs:
-                for i in range(min(len(coeffs), degree + 1)):
-                    pname = f'bl_c{i}'
-                    if pname in self._params:
-                        self._params[pname].set(value=coeffs[i])
+            # Calculate coefficient bounds based on data scale
+            max_c0 = 2 * np.max(np.abs(y_data))  # intercept bound
+            for i in range(degree + 1):
+                pname = f'bl_c{i}'
+                if pname in self._params:
+                    init_val = coeffs[i] if coeffs and i < len(coeffs) else 0
+                    # Higher order coefficients should be smaller
+                    max_ci = max_c0 / (x_span ** i) if x_span > 0 else max_c0
+                    self._params[pname].set(value=init_val, min=-max_ci, max=max_ci)
         
-        # Add AsLS hyper-parameters if needed
+        # Add AsLS hyper-parameters if needed (keeping wide bounds for flexibility)
         if use_simultaneous and self.baseline_method == 'asls':
             if 'bl_log_lam' not in self._params:
-                self._params.add('bl_log_lam', value=np.log10(self.baseline_params.get('lam', 1e5)), min=2, max=10)
-                self._params.add('bl_p', value=self.baseline_params.get('p', 0.01), min=0.0001, max=0.5)
+                init_lam = self.baseline_params.get('lam', 1e5)
+                log_lam = np.log10(init_lam)
+                # Wide bounds - AsLS benefits from flexibility
+                self._params.add('bl_log_lam', value=log_lam, min=2, max=10)
+                init_p = self.baseline_params.get('p', 0.01)
+                self._params.add('bl_p', value=init_p, min=0.0001, max=0.5)
         elif 'bl_log_lam' in self._params:
             # Remove AsLS parameters if optimizing simultaneously is turned off
             del self._params['bl_log_lam']
@@ -356,15 +375,18 @@ class ProfileFitter:
         elif 'bl_radius' in self._params:
             del self._params['bl_radius']
         
-        # Add manual baseline control-point parameters if needed
+        # Add manual baseline control-point parameters if needed with bounds
         if use_simultaneous and self.baseline_method == 'manual':
             # remove old ones if point count changed
             to_delete = [k for k in self._params if k.startswith('bl_mpt_')]
             for k in to_delete:
                 del self._params[k]
             points = self.baseline_params.get('points', [])
+            # Bound control points to ±2x the data span from their initial y values
+            max_y_delta = 2 * y_span
             for i, (_, y_val) in enumerate(points):
-                self._params.add(f'bl_mpt_{i}', value=y_val)
+                self._params.add(f'bl_mpt_{i}', value=y_val, 
+                                min=y_val - max_y_delta, max=y_val + max_y_delta)
         else:
             to_delete = [k for k in self._params if k.startswith('bl_mpt_')]
             for k in to_delete:

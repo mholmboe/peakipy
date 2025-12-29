@@ -101,7 +101,7 @@ def init_with_gmm(x, y, n_components, baseline=None, max_samples=20000, random_s
         return None
 
 
-def init_evenly_spaced(x, n_components):
+def init_evenly_spaced(x, n_components, y=None):
     """
     Initialize components evenly spaced across x-range.
     
@@ -114,6 +114,8 @@ def init_evenly_spaced(x, n_components):
         X data
     n_components : int
         Number of components to initialize
+    y : array_like, optional
+        Y data for amplitude estimation. If None, uses default amplitude.
         
     Returns
     -------
@@ -127,6 +129,16 @@ def init_evenly_spaced(x, n_components):
     if x_range == 0:
         x_range = 1.0  # Avoid division by zero
     
+    # Estimate amplitude from data if provided
+    if y is not None:
+        y = np.asarray(y)
+        y_max = np.max(y)
+        y_min = np.min(y)
+        # Use peak height divided by number of components as initial amplitude
+        base_amplitude = max((y_max - y_min) / n_components, y_max * 0.5)
+    else:
+        base_amplitude = 100.0  # Fallback default
+    
     params = []
     for i in range(n_components):
         center = x_min + (i + 1) / (n_components + 1) * x_range
@@ -134,7 +146,8 @@ def init_evenly_spaced(x, n_components):
         params.append({
             'center': float(center),
             'width': float(width),
-            'amplitude': 100.0  # Default amplitude
+            'amplitude': float(base_amplitude)
         })
     
     return params
+

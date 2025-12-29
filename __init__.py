@@ -1,7 +1,7 @@
 """
-Profile Fitting Application 
+PeakiPy - Profile Fitting Application
 
-A Python GUI and optionally a CLI batchapplication for fitting experimental data with multiple 
+A Python GUI and CLI batch application for fitting experimental data with multiple
 theoretical profiles and various baseline correction methods.
 """
 

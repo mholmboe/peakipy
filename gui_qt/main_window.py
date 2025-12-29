@@ -437,6 +437,15 @@ class QtMainWindow(QMainWindow):
         if not self.fitter: return
         
         try:
+            # Reset fitter state to original data before each evaluation
+            # This prevents cumulative state corruption during live preview
+            self.fitter.y_work = self.fitter.y_raw.copy()
+            self.fitter.y = self.fitter.y_work
+            self.fitter.y_corrected = self.fitter.y_work.copy()
+            self.fitter.normalized = False
+            self.fitter.baseline = None
+            self.fitter.baseline_raw = None
+            
             self._sync_fitter()
             
             # Apply normalization/baseline
@@ -606,7 +615,7 @@ class QtMainWindow(QMainWindow):
                 self.statusBar().showMessage("GMM failed, falling back to evenly spaced")
         
         if params is None:
-            params = init_evenly_spaced(self.x_data, n)
+            params = init_evenly_spaced(self.x_data, n, y_init)
         
         self.control_panel.component_panel.set_component_params(params)
         self.statusBar().showMessage(f"Parameters re-initialized ({method})")
