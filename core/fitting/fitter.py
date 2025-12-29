@@ -47,7 +47,10 @@ class ProfileFitter:
             Y-axis data
         """
         self.x = np.asarray(x_data)
-        self.y = np.asarray(y_data)
+        self.y_raw = np.asarray(y_data)
+        # Working copy that may be normalized; keep y as alias for backward compatibility
+        self.y = self.y_raw.copy()
+        self.y_work = self.y  # deprecated alias retained
         self.y_corrected = self.y.copy()
         
         self.components = []
@@ -56,6 +59,7 @@ class ProfileFitter:
         self.baseline = None
         self.baseline_raw = None
         self.norm_factor = 1.0  # Normalization factor for intensity scaling
+        self.normalized = False
         
         # Negative penalty settings
         self.negative_penalty_enabled = False
@@ -132,6 +136,68 @@ class ProfileFitter:
         """
         self.baseline_method = method
         self.baseline_params = params
+
+    # ===================== Baseline Helpers =====================
+    def _baseline_range_indices(self):
+        """Return index mask for the configured baseline range."""
+        x_min, x_max = self.baseline_range
+        mask = np.ones_like(self.x, dtype=bool)
+        if x_min is not None:
+            mask &= (self.x >= x_min)
+        if x_max is not None:
+            mask &= (self.x <= x_max)
+        indices = np.where(mask)[0]
+        if len(indices) < 2:
+            indices = np.arange(len(self.x))
+        return indices
+
+    def _flatten_range(self, baseline_sub, indices):
+        """Extend a sub-range baseline flat to full length."""
+        if len(indices) == len(self.x):
+            return baseline_sub
+        baseline_full = np.zeros_like(self.y_work)
+        baseline_full[indices] = baseline_sub
+        if indices[0] > 0:
+            baseline_full[:indices[0]] = baseline_sub[0]
+        if indices[-1] < len(self.x) - 1:
+            baseline_full[indices[-1]+1:] = baseline_sub[-1]
+        return baseline_full
+
+    def _compute_baseline_with_range(self, y_source, params=None):
+        """Compute baseline on configured range, flatten outside, return (baseline, corrected)."""
+        if self.baseline_method is None:
+            baseline = np.zeros_like(y_source)
+            return baseline, y_source.copy()
+
+        params = params if params is not None else self.baseline_params
+        indices = self._baseline_range_indices()
+        res = apply_baseline(self.baseline_method, self.x[indices], y_source[indices], **params)
+        if len(res) < 1:
+            raise ValueError("Baseline method returned empty result")
+        baseline_sub = res[0]
+        baseline_full = self._flatten_range(baseline_sub, indices)
+        corrected = y_source - baseline_full
+        return baseline_full, corrected
+
+    def _seed_baseline_params_from_curve(self):
+        """Seed baseline params from stored baseline_raw for parametric baselines."""
+        if self.baseline_raw is None or self.baseline_method not in ['linear', 'polynomial']:
+            return
+        try:
+            x_centered = self.x - np.mean(self.x)
+            if self.baseline_method == 'linear':
+                coeffs = np.polyfit(x_centered, self.baseline_raw, 1)
+                self.baseline_params['slope'] = coeffs[0]
+                self.baseline_params['intercept'] = coeffs[1] - coeffs[0] * np.mean(self.x)
+            else:
+                degree = self.baseline_params.get('degree', 2)
+                coeffs_desc = np.polyfit(x_centered, self.baseline_raw, degree)
+                coeffs_asc = list(coeffs_desc[::-1])
+                # adjust intercept back to original x scale
+                self.baseline_params['coeffs'] = coeffs_asc
+                self.baseline_params['degree'] = degree
+        except Exception:
+            pass
     
     def apply_baseline_correction(self):
         """
@@ -145,69 +211,10 @@ class ProfileFitter:
         corrected : ndarray
             Baseline-corrected data
         """
-        if self.baseline_method is None:
-            self.baseline = np.zeros_like(self.y)
-            self.baseline_raw = self.baseline.copy()
-            self.y_corrected = self.y.copy()
-            return self.baseline, self.y_corrected
-
-        # Handle sub-range for baseline
-        x_min, x_max = self.baseline_range
-        mask = np.ones_like(self.x, dtype=bool)
-        if x_min is not None: mask &= (self.x >= x_min)
-        if x_max is not None: mask &= (self.x <= x_max)
-
-        # Get indices of the sub-range
-        indices = np.where(mask)[0]
-        if len(indices) < 2:
-            # Fallback to full range if sub-range is too small or invalid
-            x_sub, y_sub = self.x, self.y
-            indices = np.arange(len(self.x))
-        else:
-            x_sub, y_sub = self.x[indices], self.y[indices]
-
-        # Calculate on sub-range
-        result = apply_baseline(self.baseline_method, x_sub, y_sub, **self.baseline_params)
-        
-        if len(result) < 2:
-            raise ValueError(f"Unexpected return from baseline method")
-            
-        baseline_sub = result[0]
-        
-        # Extend the baseline flatly outside the sub-range
-        if len(indices) < len(self.x):
-            self.baseline = np.zeros_like(self.y)
-            # Fill sub-range
-            self.baseline[indices] = baseline_sub
-            
-            # Pad low side (everything before first index)
-            low_idx = indices[0]
-            if low_idx > 0:
-                self.baseline[:low_idx] = baseline_sub[0]
-                
-            # Pad high side (everything after last index)
-            high_idx = indices[-1]
-            if high_idx < len(self.x) - 1:
-                self.baseline[high_idx+1:] = baseline_sub[-1]
-        else:
-            # Full range
-            self.baseline = baseline_sub
-            
-        self.baseline_raw = self.baseline.copy()
-        self.y_corrected = self.y - self.baseline
-        
-        # Store additional baseline result info (coefficients, etc.)
-        self.baseline_result = {}
-        if len(result) > 2:
-            # Polynomial returns (baseline, corrected, coeffs)
-            if self.baseline_method == 'polynomial':
-                self.baseline_result['coefficients'] = result[2]
-            # Linear returns (baseline, corrected, slope, intercept)
-            elif self.baseline_method == 'linear':
-                if len(result) >= 4:
-                    self.baseline_result['slope'] = result[2]
-                    self.baseline_result['intercept'] = result[3]
-        
+        baseline, corrected = self._compute_baseline_with_range(self.y_work, self.baseline_params)
+        self.baseline = baseline
+        self.baseline_raw = baseline.copy()
+        self.y_corrected = corrected
         return self.baseline, self.y_corrected
     
     def enable_negative_penalty(self, penalty_weight=100.0):
@@ -233,12 +240,16 @@ class ProfileFitter:
         This MUST be called BEFORE baseline correction if you want the baseline
         calculated on the normalized scale.
         """
-        max_intensity = np.max(self.y)
+        if self.normalized:
+            return
+        max_intensity = np.max(self.y_work)
         if max_intensity > 0:
             self.norm_factor = max_intensity
-            self.y = self.y / max_intensity
+            self.y_work = self.y_work / max_intensity
+            self.y = self.y_work
             # Reset y_corrected to match new scale (it will be updated by baseline correction anyway)
-            self.y_corrected = self.y.copy()
+            self.y_corrected = self.y_work.copy()
+            self.normalized = True
         else:
             self.norm_factor = 1.0
             
@@ -282,6 +293,7 @@ class ProfileFitter:
             Fitting result object
         """
         use_simultaneous = self.optimize_baseline and not skip_baseline_correction and self.baseline_method is not None
+        y_data = self.y_work
 
         if not self.components:
             raise ValueError("No components added. Use add_component() first.")
@@ -304,21 +316,7 @@ class ProfileFitter:
         
         # If we already have a baseline from a prior run, use it to seed baseline parameters
         if use_simultaneous and is_parametric_baseline and self.baseline_raw is not None:
-            try:
-                if self.baseline_method == 'linear':
-                    # Fit a line to the stored baseline to seed slope/intercept
-                    coeffs = np.polyfit(self.x, self.baseline_raw, 1)
-                    self.baseline_params['slope'] = coeffs[0]
-                    self.baseline_params['intercept'] = coeffs[1]
-                elif self.baseline_method == 'polynomial':
-                    degree = baseline_info.get('degree', self.baseline_params.get('degree', 2))
-                    coeffs_desc = np.polyfit(self.x, self.baseline_raw, degree)
-                    # np.polyfit returns highest degree first; convert to ascending order used elsewhere
-                    self.baseline_params['coeffs'] = list(coeffs_desc[::-1])
-                    self.baseline_params['degree'] = degree
-            except Exception:
-                # If seeding fails, fall back to existing params
-                pass
+            self._seed_baseline_params_from_curve()
 
         if self._model is None or self._params is None or has_bl_params != needs_bl_params:
             from .model_builder import build_composite_model
@@ -374,7 +372,7 @@ class ProfileFitter:
         
         # Add Shirley endpoint offsets if needed
         if use_simultaneous and self.baseline_method == 'shirley':
-            span = max(np.max(self.y) - np.min(self.y), 1.0)
+            span = max(np.max(y_data) - np.min(y_data), 1.0)
             if 'bl_start_offset' not in self._params:
                 self._params.add('bl_start_offset', value=self.baseline_params.get('start_offset', 0.0),
                                  min=-2*span, max=2*span)
@@ -407,20 +405,7 @@ class ProfileFitter:
             
             def _compute_baseline(residual_y, params_for_baseline):
                 """Calculate baseline on the configured range and extend flat outside."""
-                x_min, x_max = self.baseline_range
-                mask = (self.x >= (x_min if x_min is not None else -np.inf)) & \
-                       (self.x <= (x_max if x_max is not None else np.inf))
-                indices = np.where(mask)[0]
-                if len(indices) < 2:
-                    indices = np.arange(len(self.x))
-                res = apply_baseline(self.baseline_method, self.x[indices], residual_y[indices], **params_for_baseline)
-                bl_sub = res[0]
-                bl_full = np.zeros_like(self.y)
-                bl_full[indices] = bl_sub
-                if indices[0] > 0:
-                    bl_full[:indices[0]] = bl_sub[0]
-                if indices[-1] < len(self.x) - 1:
-                    bl_full[indices[-1]+1:] = bl_sub[-1]
+                bl_full, _ = self._compute_baseline_with_range(residual_y, params_for_baseline)
                 return bl_full
 
             # Objective function for simultaneous fitting
@@ -435,14 +420,14 @@ class ProfileFitter:
                     elif self.baseline_method == 'linear':
                         bl_raw = params['bl_slope'].value * self.x + params['bl_intercept'].value
                     else:
-                        bl_raw = np.zeros_like(self.y)
+                        bl_raw = np.zeros_like(y_data)
 
                     bl_full = _apply_range_flat(bl_raw)
                     peaks_only = y_peaks - bl_raw  # remove baseline part from composite eval
-                    residual = self.y - (peaks_only + bl_full)
+                    residual = y_data - (peaks_only + bl_full)
                 else:
                     # Non-parametric baseline: iterative calculation using apply_baseline
-                    y_residual_for_baseline = self.y - y_peaks
+                    y_residual_for_baseline = y_data - y_peaks
                     
                     # Use current optimized baseline parameters if present
                     current_params = self.baseline_params.copy()
@@ -467,13 +452,13 @@ class ProfileFitter:
                             current_params['points'] = new_pts
 
                     bl_full = _compute_baseline(y_residual_for_baseline, current_params)
-                    residual = self.y - (y_peaks + bl_full)
+                    residual = y_data - (y_peaks + bl_full)
                 if self.negative_penalty_enabled:
                     if not is_parametric_baseline:
-                        negative_mask = (self.y - bl_full) < 0
+                        negative_mask = (y_data - bl_full) < 0
                         if np.any(negative_mask):
                             total_abs_res = np.sum(np.abs(residual))
-                            penalty = (self.negative_penalty_weight/100.0)*total_abs_res*(np.sum(negative_mask)/len(self.y))
+                            penalty = (self.negative_penalty_weight/100.0)*total_abs_res*(np.sum(negative_mask)/len(y_data))
                             residual[negative_mask] += penalty / np.sum(negative_mask)
                 
                 # Store current baseline for callback
@@ -508,13 +493,14 @@ class ProfileFitter:
                     self.baseline_params['slope'] = slope
                     self.baseline_params['intercept'] = intercept
                 else:
-                    bl_raw = np.zeros_like(self.y)
+                    bl_raw = np.zeros_like(y_data)
 
                 self.baseline = _apply_range_flat(bl_raw)
+                self.baseline_raw = self.baseline.copy()
                 
                 y_peaks = self._model.eval(self.result.params, x=self.x) - bl_raw
                 self.result.best_fit = y_peaks
-                self.y_corrected = self.y - self.baseline
+                self.y_corrected = y_data - self.baseline
                 self.result.residual = self.y_corrected - y_peaks
             else:
                 # Non-parametric (AsLS, rolling ball, Shirley)
@@ -551,23 +537,9 @@ class ProfileFitter:
                         current_params['points'] = new_pts
                         self.baseline_params['points'] = new_pts
 
-                x_min, x_max = self.baseline_range
-                mask = (self.x >= (x_min if x_min is not None else -np.inf)) & \
-                       (self.x <= (x_max if x_max is not None else np.inf))
-                indices = np.where(mask)[0]
-                if len(indices) < 2: indices = np.arange(len(self.x))
-                
-                res = apply_baseline(self.baseline_method, self.x[indices], (self.y - y_peaks)[indices], **current_params)
-                bl_sub = res[0]
-                if len(indices) < len(self.x):
-                    self.baseline = np.zeros_like(self.y)
-                    self.baseline[indices] = bl_sub
-                    if indices[0] > 0: self.baseline[:indices[0]] = bl_sub[0]
-                    if indices[-1] < len(self.x)-1: self.baseline[indices[-1]+1:] = bl_sub[-1]
-                else:
-                    self.baseline = bl_sub
-                    
-                self.y_corrected = self.y - self.baseline
+                self.baseline, _ = self._compute_baseline_with_range(y_data - y_peaks, current_params)
+                self.baseline_raw = self.baseline.copy()
+                self.y_corrected = y_data - self.baseline
                 self.result.best_fit = y_peaks
                 self.result.residual = self.y_corrected - y_peaks
             
@@ -590,7 +562,7 @@ class ProfileFitter:
                     if np.any(negative_mask):
                         total_abs_res = np.sum(np.abs(residual))
                         negative_count = np.sum(negative_mask)
-                        penalty = (self.negative_penalty_weight/100.0) * total_abs_res * (negative_count/len(self.y))
+                        penalty = (self.negative_penalty_weight/100.0) * total_abs_res * (negative_count/len(y_data))
                         residual[negative_mask] += penalty / negative_count
                     return residual
                 

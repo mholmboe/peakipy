@@ -18,12 +18,12 @@ A GUI application for fitting experimental X/Y data with multiple theoretical pe
 
 ### Baseline Correction
 - **AsLS (Asymmetric Least Squares)**: Robust smoothness-based baseline with optional simultaneous optimization of λ and p parameters.
-- **Shirley**: Classical background correction for inelastic scattering (with optimizable endpoint offsets).
+- **Shirley**: Classical background correction with optimizable endpoint offsets.
 - **Rolling Ball**: Morphological background subtraction with optimizable radius.
 - **Polynomial & Linear**: Geometric baselines with calculated coefficients displayed in results. Linear mode exposes slope/intercept sliders for manual seeding and simultaneous refinement.
-- **Manual (Spline/Linear)**: Click up to 15 control points on the plot (linear or cubic interpolation) to draw a custom baseline and optionally optimize control-point heights during fitting.
+- **Manual (Spline/Linear)**: Click up to 15 control points on the plot (linear or cubic interpolation) to draw a custom baseline and optionally optimize control-point heights during fitting. Baseline is computed on the original scale; only the baseline-subtracted data is normalized when enabled.
 - **Calculation Range**: Independently define the sub-range for baseline fitting with automatic flat extensions.
-- **Simultaneous Optimization**: Refine baseline parameters (ASLS λ/p, polynomial & linear coefficients, rolling-ball radius, Shirley endpoint offsets, manual control-point heights) together with peaks during fitting.
+- **Simultaneous Optimization**: Refine baseline parameters (ASLS λ/p, polynomial & linear coefficients, rolling-ball radius, Shirley endpoint offsets, manual control-point heights) together with peaks during fitting. Existing baselines seed parametric fits for closer starting points.
 
 ### Data Processing
 - **ROI Selection**: Crop data to specific X-ranges easily.
@@ -81,7 +81,7 @@ python peakipy_gui.py
 ```
 
 ### Basic Workflow
-1. **Load Data**: Click **📁 Load Data** and select your text-based XRD data (two columns: X, Y).
+1. **Load Data**: Click **📁 Load Data** and select your text-based data (two columns: X, Y).
 2. **Preprocessing**: Set X-ranges or interpolation steps in the **Data Preprocessing** panel.
 3. **Baseline**: Configure your background method. Enable **Live Preview** to see the baseline overlay (dashed gray line) in real-time. Use the **Calculation Range** to restrict baseline fitting to a specific sub-region, or enable **Simultaneous Optimization** to refine the background alongside your peaks.
 4. **Components**: Select the number of peaks (1-20) and profile type. Use **Live Preview** to adjust manual initial guesses.

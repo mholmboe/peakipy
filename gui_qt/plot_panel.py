@@ -81,21 +81,26 @@ class QtPlotPanel(QWidget):
             ceil = floor + max(span, pad, 1e-3)
         self.ax1.set_ylim(floor, ceil)
 
+    def _finalize_axes(self, *arrays, legend_loc='best', draw=True, cache=True):
+        """Apply legend/grid/ylim updates and refresh canvas/cache."""
+        self._set_ylim_from_data(*arrays)
+        self.ax1.legend(loc=legend_loc, fontsize=9)
+        self.ax1.grid(True, alpha=0.3)
+        if draw:
+            self.canvas.draw()
+            if cache:
+                self._bg_cache = self.canvas.copy_from_bbox(self.ax1.bbox)
+
     def plot_data(self, x, y, title="Experimental Data"):
         """Plot raw experimental data."""
         self.ax1.clear()
         self.ax1.plot(x, y, 'o', markersize=4, label='Data', alpha=0.6, color='#34495e')
         self.ax1.set_xlabel('X')
         self.ax1.set_ylabel('Intensity')
-        self._set_ylim_from_data(y)
         self.ax1.set_title(title, fontweight='bold')
-        self.ax1.legend()
-        self.ax1.grid(True, alpha=0.3)
         self.ax2.clear()
         self.ax2.axis('off')
-        self.canvas.draw()
-        # Cache background after drawing data for blitting
-        self._bg_cache = self.canvas.copy_from_bbox(self.ax1.bbox)
+        self._finalize_axes(y, draw=True, cache=True)
 
     def update_fit_plot(self, x, y_exp, y_fit, residuals, components=None, baseline=None, show_fit=True, y_raw=None):
         """Update plot with fit results."""
@@ -124,10 +129,8 @@ class QtPlotPanel(QWidget):
         self.ax1.set_xlabel('X')
         self.ax1.set_ylabel('Intensity')
         self.ax1.set_title('Fit Result', fontweight='bold')
-        self.ax1.legend(loc='best', fontsize=9)
-        self.ax1.grid(True, alpha=0.3)
         comp_arrays = components.values() if components else []
-        self._set_ylim_from_data(y_exp, y_fit if show_fit else None, baseline, *(comp_arrays if components else []), y_raw)
+        self._finalize_axes(y_exp, y_fit if show_fit else None, baseline, *(comp_arrays if components else []), y_raw, draw=False, cache=False)
 
         # Residuals plot
         self.ax2.plot(x, residuals, 'o', markersize=3, color='#27ae60', alpha=0.7)
@@ -184,10 +187,7 @@ class QtPlotPanel(QWidget):
                                                    color='#f39c12', label='Corrected (preview)', alpha=0.4)
 
         # Ensure limits, legend, and cache update regardless of branch
-        self._set_ylim_from_data(y_raw, baseline, corrected)
-        self.ax1.legend(loc='best', fontsize=9)
-        self.canvas.draw()
-        self._bg_cache = self.canvas.copy_from_bbox(self.ax1.bbox)
+        self._finalize_axes(y_raw, baseline, corrected, draw=True, cache=True)
 
     def clear_baseline_preview(self):
         """Remove baseline preview lines from plot."""

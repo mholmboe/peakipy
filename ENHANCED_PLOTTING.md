@@ -5,9 +5,10 @@ The plotting panel provides high-fidelity, real-time feedback of the fitting pro
 ## Visual Components
 
 ### 1. Data Layers
-- **Experimental Data (Baseline-Subtracted)**: Dark gray circles showing the corrected data that is actually fitted. 
+- **Original Data (optional overlay)**: Lighter markers showing the raw series for comparison.
+- **Experimental Data (Baseline-Subtracted)**: Dark gray circles showing the corrected data that is actually fitted.
 - **Total Fit Curve**: Solid red line showing the peak-only model on the same baseline-subtracted scale.
-- **Fitted Baseline**: Dash-dot gray line shown after fit for reference; not added to the plotted “Total Fit”. Manual baselines also show orange control-point markers.
+- **Fitted Baseline**: Dash-dot gray line shown after fit for reference on the original (unnormalized) scale. Manual baselines also show orange control-point markers.
 - **Residuals**: A separate bottom panel showing `Measured - Calculated` on the corrected scale.
 - **Confidence Bands**: Shaded gray region at ±2σ in the residuals panel.
 

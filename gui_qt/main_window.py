@@ -78,7 +78,7 @@ class QtMainWindow(QMainWindow):
     """
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("XRD Profile Fitting Application (Qt)")
+        self.setWindowTitle("PeakiPy Baseline/Profile Fitting App")
         self.resize(1450, 950)
         
         # Data storage
@@ -94,7 +94,7 @@ class QtMainWindow(QMainWindow):
         self.threadpool = QThreadPool()
         
         # Persistence (must be before _create_menu for recent files)
-        self.settings = QSettings("XRD-Lab", "ProfileFitting")
+        self.settings = QSettings("ExpLab", "ProfileFitting")
         
         self._create_actions()
         self._setup_ui()
@@ -709,8 +709,8 @@ class QtMainWindow(QMainWindow):
     def show_about(self):
         """Show about dialog."""
         QMessageBox.about(self, "About", 
-                         "XRD Profile Fitting Application\nVersion 2.0 (PySide6)\n\n"
-                         "A modern GUI for multi-component XRD peak fitting.")
+                         "Baseline and Profile Fitting Application\nVersion 2.0 (PySide6)\n\n"
+                         "A modern GUI for multi-component peak fitting.")
 
     def _load_settings(self):
         """Restore window geometry and state."""
