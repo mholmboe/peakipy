@@ -1,5 +1,5 @@
 """
-Widget for a single peak component in PySide6.
+Widget for a single peak component in PySide6. 
 """
 
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, 

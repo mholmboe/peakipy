@@ -1,5 +1,5 @@
 """
-Component Management Panel for PySide6.
+Component Management Panel for PySide6. 
 """
 
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 

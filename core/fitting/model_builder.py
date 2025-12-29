@@ -1,5 +1,5 @@
 """
-Model builder for composite profile fitting using lmfit.
+Model builder for composite profile fitting using lmfit. 
 """
 
 from lmfit import Model, CompositeModel

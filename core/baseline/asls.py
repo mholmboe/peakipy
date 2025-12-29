@@ -1,5 +1,5 @@
 """
-Asymmetric Least Squares (AsLS) baseline correction.
+Asymmetric Least Squares (AsLS) baseline correction. 
 """
 
 import numpy as np

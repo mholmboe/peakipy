@@ -1,5 +1,5 @@
 """
-Gaussian profile function.
+Gaussian profile function. 
 """
 
 import numpy as np

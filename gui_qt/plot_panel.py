@@ -1,5 +1,5 @@
 """
-Plotting panel for PySide6 using Matplotlib.
+Plotting panel for PySide6 using Matplotlib. 
 """
 
 import numpy as np

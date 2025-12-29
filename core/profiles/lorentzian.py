@@ -1,5 +1,5 @@
 """
-Lorentzian profile function.
+Lorentzian profile function. 
 """
 
 import numpy as np

@@ -1,5 +1,5 @@
 """
-Manual baseline defined by user-specified control points.
+Manual baseline defined by user-specified control points. 
 """
 
 import numpy as np

@@ -1,5 +1,5 @@
 """
-Polynomial baseline correction.
+Polynomial baseline correction. 
 """
 
 import numpy as np

@@ -1,5 +1,5 @@
 """
-Main Window for PySide6 Profile Fitting Application.
+Main Window for PySide6 Profile Fitting Application. 
 """
 
 import sys

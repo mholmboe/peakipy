@@ -1,4 +1,4 @@
-"""Core package initialization."""
+"""Core package initialization. """
 
 from . import profiles
 from . import baseline

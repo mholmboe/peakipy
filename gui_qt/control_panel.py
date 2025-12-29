@@ -1,5 +1,5 @@
 """
-Unified Control Panel for PySide6.
+Unified Control Panel for PySide6. 
 """
 
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QPushButton, QGroupBox, 

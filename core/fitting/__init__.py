@@ -1,4 +1,4 @@
-"""Fitting engine for profile fitting."""
+"""Fitting engine for profile fitting. """
 
 from .fitter import ProfileFitter
 from .model_builder import build_composite_model, set_parameter_bounds, set_parameter_constraints

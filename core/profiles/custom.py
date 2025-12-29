@@ -1,5 +1,5 @@
 """
-Custom profile loader for user-defined peak functions.
+Custom profile loader for user-defined peak functions. 
 """
 
 import json
