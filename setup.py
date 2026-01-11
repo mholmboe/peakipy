@@ -13,12 +13,12 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 setup(
     name="peakipy",
     version="0.2.0",
-    author="mholmboe",
-    author_email="",
+    author="M. Holmboe",
+    author_email="michael.holmboe@umu.se",
     description="A PySide6-based application for fitting experimental data with multiple theoretical profiles",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="",
+    url="https://github.com/mholmboe/peakipy",
     packages=find_packages(),
     classifiers=[
         "Development Status :: 3 - Alpha",
