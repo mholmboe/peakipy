@@ -13,7 +13,7 @@ from PySide6.QtCore import Qt
 
 from core.data_import import load_data_file
 from core.fitting import ProfileFitter
-from core.data_preprocessing import crop_roi, interpolate_data
+from core.data_preprocessing import crop_roi, interpolate_data, remove_outliers_zscore, remove_outliers_iqr, smooth_data
 from core.fitting.model_builder import build_composite_model
 from core.fitting.initializers import init_with_gmm, init_evenly_spaced
 import numpy as np
@@ -358,20 +358,37 @@ class QtMainWindow(QMainWindow):
                 QMessageBox.critical(self, "Error", f"Failed to load file: {str(e)}")
 
     def apply_preprocessing(self):
-        """Apply ROI, interpolation, and optionally normalization."""
+        """Apply ROI, outlier removal, interpolation, smoothing, and normalization."""
         if self.x_data_raw is None:
             return
             
         config = self.control_panel.get_preprocessing_config()
         try:
-            x_proc, y_proc = crop_roi(self.x_data_raw, self.y_data_raw, 
-                                      config["x_min"], config["x_max"])
+            x_proc, y_proc = self.x_data_raw.copy(), self.y_data_raw.copy()
             
+            # Step 1: Outlier removal (before other processing)
+            if config.get("outlier_method", "none") != "none":
+                threshold = config.get("outlier_threshold", 3.0)
+                if config["outlier_method"] == "zscore":
+                    x_proc, y_proc, _ = remove_outliers_zscore(x_proc, y_proc, threshold)
+                elif config["outlier_method"] == "iqr":
+                    x_proc, y_proc, _ = remove_outliers_iqr(x_proc, y_proc, threshold)
+            
+            # Step 2: Crop to ROI
+            x_proc, y_proc = crop_roi(x_proc, y_proc, config["x_min"], config["x_max"])
+            
+            # Step 3: Interpolation
             if config["interpolate"]:
                 x_proc, y_proc = interpolate_data(x_proc, y_proc, config["x_min"], config["x_max"], 
                                                 step=config["step"])
             
-            # Apply normalization if checked
+            # Step 4: Smoothing (after interpolation for uniform spacing)
+            if config.get("smoothing", False):
+                window = config.get("smooth_window", 11)
+                order = config.get("smooth_order", 3)
+                y_proc = smooth_data(y_proc, window_length=window, polyorder=order)
+            
+            # Step 5: Normalization
             if self.control_panel.norm_check.isChecked():
                 y_max = np.max(y_proc)
                 if y_max > 0:

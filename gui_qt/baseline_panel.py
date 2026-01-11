@@ -38,6 +38,14 @@ class QtBaselinePanel(QWidget):
         self.method_combo.currentIndexChanged.connect(self._on_method_changed)
         form.addRow("Method:", self.method_combo)
         
+        # Auto baseline checkbox - when checked, parameters are auto-determined
+        self.auto_baseline_check = QCheckBox("Auto Baseline")
+        self.auto_baseline_check.setChecked(True)
+        self.auto_baseline_check.setToolTip("When checked, optimal parameters are auto-determined.\nUncheck to manually set baseline parameters.")
+        self.auto_baseline_check.toggled.connect(self._on_auto_baseline_toggled)
+        self.auto_baseline_check.toggled.connect(self.baseline_changed)
+        form.addRow(self.auto_baseline_check)
+        
         self.live_preview_check = QCheckBox("Live Preview")
         self.live_preview_check.setToolTip("Updates plot as you adjust parameters")
         self.live_preview_check.toggled.connect(self.baseline_changed)
@@ -131,10 +139,44 @@ class QtBaselinePanel(QWidget):
         layout.addWidget(self.params_stack)
         
         main_layout.addWidget(self.group_box)
+        
+        # Initialize control states (auto baseline is checked by default, so disable controls)
+        self._on_auto_baseline_toggled(True)
 
     def _on_method_changed(self, index):
         self.params_stack.setCurrentIndex(index)
         self.baseline_changed.emit()
+
+    def _on_auto_baseline_toggled(self, checked):
+        """Enable/disable all parameter controls based on auto baseline mode.
+        
+        When auto is checked, parameter controls are disabled (using defaults/auto-fit).
+        When auto is unchecked, parameter controls are enabled for manual override.
+        """
+        enabled = not checked  # Enable controls when auto is OFF
+        
+        # AsLS controls
+        self.asls_lam.setEnabled(enabled)
+        self.asls_p.setEnabled(enabled)
+        self.asls_niter.setEnabled(enabled)
+        
+        # Polynomial controls  
+        self.poly_degree.setEnabled(enabled)
+        
+        # Linear controls
+        self.linear_slope.setEnabled(enabled)
+        self.linear_intercept.setEnabled(enabled)
+        
+        # Rolling Ball controls
+        self.rb_radius.setEnabled(enabled)
+        
+        # Shirley controls
+        self.shirley_tol.setEnabled(enabled)
+        self.shirley_iter.setEnabled(enabled)
+        
+        # Manual baseline controls remain enabled (you always need to set points)
+        # self.manual_max_points.setEnabled(enabled)
+        # self.manual_interp.setEnabled(enabled)
 
     def get_config(self):
         """Return dict of baseline configuration."""
@@ -160,10 +202,13 @@ class QtBaselinePanel(QWidget):
                 "max_iter": int(self.shirley_iter.value())
             }
         elif method == "linear":
-            params = {
-                "slope": self.linear_slope.value(),
-                "intercept": self.linear_intercept.value()
-            }
+            if not self.auto_baseline_check.isChecked():
+                params = {
+                    "slope": self.linear_slope.value(),
+                    "intercept": self.linear_intercept.value()
+                }
+            else:
+                params = {}  # Use auto-fit
         elif method == "manual":
             params = {
                 "points": getattr(self, "manual_points", []),
@@ -199,8 +244,14 @@ class QtBaselinePanel(QWidget):
             if "tol" in params: self.shirley_tol.setValue(params["tol"])
             if "max_iter" in params: self.shirley_iter.setValue(params["max_iter"])
         elif method == "linear":
-            if "slope" in params: self.linear_slope.setValue(params["slope"])
-            if "intercept" in params: self.linear_intercept.setValue(params["intercept"])
+            if "slope" in params and "intercept" in params:
+                # Disable auto mode and set values
+                self.auto_baseline_check.setChecked(False)
+                self.linear_slope.setValue(params["slope"])
+                self.linear_intercept.setValue(params["intercept"])
+            else:
+                # Use auto-fit mode
+                self.auto_baseline_check.setChecked(True)
         elif method == "manual":
             self.manual_points = params.get("points", [])
             if "interp" in params:

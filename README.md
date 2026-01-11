@@ -27,7 +27,9 @@ A GUI application for fitting experimental X/Y data with multiple theoretical pe
 
 ### Data Processing
 - **ROI Selection**: Crop data to specific X-ranges easily.
-- **Interpolation**: Upsample or downsample data for uniform step sizes.
+- **Interpolation**: Upsample or downsample data for uniform step sizes (supports extending beyond data range via extrapolation).
+- **Outlier Removal**: Z-score and IQR methods to remove anomalous data points.
+- **Smoothing**: Savitzky-Golay filter with configurable window length and polynomial order.
 - **Normalization**: Automatically scale intensities for consistent fitting.
 - **Non-Negative Constraints**: Ensure physically meaningful results with penalty-based constraints.
 
