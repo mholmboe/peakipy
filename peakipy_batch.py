@@ -28,7 +28,7 @@ import numpy as np
 from core.data_import import load_data_file
 from core.fitting import ProfileFitter
 from core.fitting.model_builder import build_composite_model
-from core.data_preprocessing import crop_roi, interpolate_data
+from core.data_preprocessing import crop_roi, interpolate_data, remove_outliers_zscore, remove_outliers_iqr, smooth_data
 
 
 def parse_args():
@@ -72,6 +72,19 @@ def parse_args():
     p.add_argument("--normalize", action="store_true", help="Normalize raw data before fitting")
     p.add_argument("--optimize_baseline", action="store_true", help="Optimize baseline simultaneously with peaks")
     p.add_argument("--max_nfev", type=int, default=None, help="Max function evals for optimizer")
+
+    # Outlier removal
+    p.add_argument("--outlier_method", default=None, choices=["zscore", "iqr"],
+                   help="Outlier removal method: zscore or iqr")
+    p.add_argument("--outlier_threshold", type=float, default=3.0,
+                   help="Threshold for outlier removal (Z-score threshold or IQR factor, default 3.0)")
+
+    # Smoothing
+    p.add_argument("--smooth", action="store_true", help="Apply Savitzky-Golay smoothing")
+    p.add_argument("--smooth_window", type=int, default=11,
+                   help="Smoothing window length (odd, 5-51, default 11)")
+    p.add_argument("--smooth_order", type=int, default=3,
+                   help="Smoothing polynomial order (1-5, default 3)")
 
     return p.parse_args()
 
@@ -191,6 +204,14 @@ def main():
                 x, y = crop_roi(x, y, x_min=xmin, x_max=xmax)
             if args.interp_step is not None:
                 x, y = interpolate_data(x, y, x_min=xmin, x_max=xmax, step=args.interp_step)
+            # Outlier removal (before smoothing)
+            if args.outlier_method == "zscore":
+                x, y, _ = remove_outliers_zscore(x, y, threshold=args.outlier_threshold)
+            elif args.outlier_method == "iqr":
+                x, y, _ = remove_outliers_iqr(x, y, factor=args.outlier_threshold)
+            # Smoothing
+            if args.smooth:
+                y = smooth_data(y, window_length=args.smooth_window, polyorder=args.smooth_order)
             fitter = build_fitter(x, y, args)
             if args.normalize:
                 fitter.normalize_raw_data()

@@ -29,7 +29,9 @@ A GUI application for fitting experimental X/Y data with multiple theoretical pe
 - **ROI Selection**: Crop data to specific X-ranges easily.
 - **Interpolation**: Upsample or downsample data for uniform step sizes (supports extending beyond data range via extrapolation).
 - **Outlier Removal**: Z-score and IQR methods to remove anomalous data points.
-- **Smoothing**: Savitzky-Golay filter with configurable window length and polynomial order.
+  - *Z-Score*: Removes points where the y-value deviates more than a threshold (default 3.0) standard deviations from the mean.
+  - *IQR*: Removes points outside the interquartile range bounds (Q1 - factor×IQR, Q3 + factor×IQR), with configurable factor (default 1.5).
+- **Smoothing**: Savitzky-Golay filter with configurable window length (5–51, odd) and polynomial order (1–5).
 - **Normalization**: Automatically scale intensities for consistent fitting.
 - **Non-Negative Constraints**: Ensure physically meaningful results with penalty-based constraints.
 
@@ -58,6 +60,8 @@ python peakipy_batch.py "data/*.txt" \
 Key options:
 - `pattern`: Glob for input files (e.g., `"data/*.txt"`).
 - Preprocess: `--fit_min/--fit_max` to crop; `--interp_step` to resample to regular spacing; `--normalize` to scale intensities to max=1.
+- Outlier Removal: `--outlier_method` (zscore|iqr) with `--outlier_threshold` (default 3.0 for Z-score, 1.5 typical for IQR).
+- Smoothing: `--smooth` to enable Savitzky-Golay filter with `--smooth_window` (odd, 5-51, default 11) and `--smooth_order` (1-5, default 3).
 - Baseline: `--baseline` (asls|polynomial|linear|rolling_ball|shirley|manual) plus method params (`--lam/--p`, `--degree`, `--slope/--intercept`, `--radius`, `--tol/--max_iter/--start_offset/--end_offset`, `--manual_points x:y,...`, `--manual_interp linear|cubic`). Use `--calc_min/--calc_max` to limit baseline calc range (flattened outside). `--optimize_baseline` optimizes baseline with peaks.
 - Components: `--profile` (gaussian|lorentzian|voigt), `--components N`, and per-component lists (`--centers`, `--sigmas`/`--gammas`/`--widths`, `--amplitudes`).
 Outputs: For each input file, `<base>_results.txt` (report + stats) and `<base>_data.txt` (X, Y_Exp, Y_Fit, Residual, Comp_1…Comp_N) are written alongside the data.
@@ -157,6 +161,11 @@ graph TB
     FIT --> ASLS & POLY & LIN & RB & SHIRLEY & MANUAL
     MODEL --> GAUSS & LORENTZ & VOIGT
 ```
+
+## Test Data
+The repository includes sample data files for testing and demonstration:
+- **`testdata.txt`**: Clean synthetic data with two overlapping Gaussian peaks on a polynomial baseline. Contains headers (x, y) and 1600+ data points.
+- **`testdata_noise.txt`**: Noisy synthetic data with significant random noise added. Contains 401 data points (X: 0–40) without headers. Ideal for testing outlier removal and smoothing features.
 
 ## License
 MIT License

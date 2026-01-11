@@ -11,6 +11,17 @@ The application handles the full data lifecycle from import and noise reduction 
 - Gracefully handles irregular spacing and multiple delimiters (tabs, spaces, commas).
 - **📁 Load Data**: Located in the **Data Source** group at the top of the sidebar.
 
+### 2. Data Preprocessing Features
+**Outlier Removal**
+- **Z-Score Method**: Removes points where the y-value deviates more than a configurable threshold (default 3.0) standard deviations from the mean.
+- **IQR Method**: Removes points outside the interquartile range bounds (Q1 - factor×IQR, Q3 + factor×IQR), with configurable factor (default 1.5).
+
+**Smoothing**
+- **Savitzky-Golay Filter**: Applies polynomial smoothing with configurable window length (5–51, must be odd) and polynomial order (1–5). Enabled via checkbox; ideal for noisy datasets.
+
+**Sample Noisy Data**
+- The repository includes `testdata_noise.txt` for testing these features—a synthetic dataset with significant random noise.
+
 - **Calculation Range**: Independently define the sub-range for baseline calculation. If your data spans [10, 90] but you only want to fit the baseline between [20, 80], the application will calculate the curve in that window and extend it as a flat line outside.
 - **Normalization Rule**: Baseline is always computed on the original scale; if normalization is enabled, only the baseline-subtracted data is normalized for fitting/plotting.
 - **Simultaneous Optimization**: Baseline parameters can be refined during every iteration of the peak fitting process (ASLS λ/p, polynomial & linear coefficients, rolling-ball radius, Shirley endpoint offsets). Linear mode supports manual slope/intercept seeds that can then be optimized. A manual click-defined baseline (up to 15 points, linear/cubic interpolation) can also be optimized by adjusting control-point heights. This allows the baseline to adapt and results in a more accurate fit for complex experimental data. Existing baselines seed parametric fits for closer starting points.
