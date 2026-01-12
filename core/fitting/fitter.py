@@ -791,6 +791,8 @@ class ProfileFitter:
                 total_amp += amp_val
 
             report += "[[ COMPONENTS ]]\n"
+            report += f"Total Amplitude: {total_amp:.6g}\n\n"
+            
             for idx, comp in enumerate(self.components):
                 prefix = comp['prefix']
                 ctype = comp['type']
@@ -804,13 +806,12 @@ class ProfileFitter:
                 gamma_val = params[gamma_name].value if gamma_name in params else None
                 rel = amp_val / total_amp if total_amp > 0 else 0.0
                 report += f"Comp {idx+1} ({ctype}):\n"
-                report += f"  - Amplitude: {amp_val:.6g}\n"
                 report += f"  - Center:    {center_val:.6g}\n"
+                report += f"  - Weight:    {rel*100:.2f}%\n"
                 if sigma_val is not None:
                     report += f"  - Sigma:     {sigma_val:.6g}\n"
                 if gamma_val is not None:
                     report += f"  - Gamma:     {gamma_val:.6g}\n"
-                report += f"  - Rel. Weight (normalized): {rel:.4f}\n"
             report += "\n"
 
         if hasattr(self.result, 'fit_report') and callable(self.result.fit_report):
