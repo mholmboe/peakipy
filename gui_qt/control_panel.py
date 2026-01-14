@@ -96,8 +96,31 @@ class QtControlPanel(QWidget):
         row2.addWidget(self.interp_step)
         row2.addSpacing(8)
         self.norm_check = QCheckBox("Norm.")
-        self.norm_check.setChecked(True)
+        self.norm_check.setChecked(False)
         row2.addWidget(self.norm_check)
+        
+        # Norm Range (hidden by default unless checked)
+        self.norm_range_widget = QWidget()
+        norm_layout = QHBoxLayout(self.norm_range_widget)
+        norm_layout.setContentsMargins(0, 0, 0, 0)
+        norm_layout.setSpacing(2)
+        self.norm_min = QLineEdit("auto")
+        self.norm_min.setMaximumWidth(50)
+        self.norm_min.setPlaceholderText("auto")
+        self.norm_max = QLineEdit("auto")
+        self.norm_max.setMaximumWidth(50)
+        self.norm_max.setPlaceholderText("auto")
+        norm_layout.addWidget(QLabel("Range:"))
+        norm_layout.addWidget(self.norm_min)
+        norm_layout.addWidget(QLabel("-"))
+        norm_layout.addWidget(self.norm_max)
+        row2.addWidget(self.norm_range_widget)
+        
+        # Connect visibility - logic to show/hide
+        self.norm_check.toggled.connect(self.norm_range_widget.setVisible)
+        # Explicitly set initial state (Hidden because default is Unchecked)
+        self.norm_range_widget.setVisible(False)
+        
         row2.addStretch()
         self.apply_pre_btn = QPushButton("Apply")
         row2.addWidget(self.apply_pre_btn)
@@ -219,8 +242,15 @@ class QtControlPanel(QWidget):
 
     def get_fitting_options(self):
         """Return dict of global fitting options."""
+        try:
+            n_min = None if self.norm_min.text() == "auto" else float(self.norm_min.text())
+            n_max = None if self.norm_max.text() == "auto" else float(self.norm_max.text())
+        except ValueError:
+            n_min, n_max = None, None
+
         return {
             "normalize": self.norm_check.isChecked(),
+            "normalize_range": (n_min, n_max),
             "non_negative": self.penalty_check.isChecked()
         }
 

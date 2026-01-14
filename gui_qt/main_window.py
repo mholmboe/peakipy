@@ -279,6 +279,21 @@ class QtMainWindow(QMainWindow):
                             
                         # Corrected data is ALWAYS y_raw - baseline
                         corr = y - bl_full
+                        
+                        # Apply visual normalization if enabled
+                        opts = self.control_panel.get_fitting_options()
+                        if opts["normalize"]:
+                            norm_range = opts.get("normalize_range", (None, None))
+                            mask = np.ones_like(x, dtype=bool)
+                            if norm_range[0] is not None: mask &= (x >= norm_range[0])
+                            if norm_range[1] is not None: mask &= (x <= norm_range[1])
+                            
+                            c_subset = corr[mask] if np.any(mask) else corr
+                            c_max = np.max(c_subset) if len(c_subset) > 0 else 0
+                            
+                            if c_max > 0:
+                                corr = corr / c_max
+
                         self.plot_panel.update_baseline_preview(x, y, bl_full, corr)
                     except Exception as inner_e:
                         print(f"DEBUG: apply_baseline failed: {inner_e}")
@@ -389,8 +404,21 @@ class QtMainWindow(QMainWindow):
                 y_proc = smooth_data(y_proc, window_length=window, polyorder=order)
             
             # Step 5: Normalization
+            # Step 5: Normalization
             if self.control_panel.norm_check.isChecked():
-                y_max = np.max(y_proc)
+                # Use range from inputs
+                opts = self.control_panel.get_fitting_options()
+                norm_range = opts.get("normalize_range", (None, None))
+                
+                y_subset = y_proc
+                if norm_range[0] is not None or norm_range[1] is not None:
+                     mask = np.ones_like(x_proc, dtype=bool)
+                     if norm_range[0] is not None: mask &= (x_proc >= norm_range[0])
+                     if norm_range[1] is not None: mask &= (x_proc <= norm_range[1])
+                     if np.any(mask):
+                         y_subset = y_proc[mask]
+                
+                y_max = np.max(y_subset) if len(y_subset) > 0 else 0
                 if y_max > 0:
                     y_proc = y_proc / y_max
             
@@ -466,15 +494,34 @@ class QtMainWindow(QMainWindow):
             self._sync_fitter()
             
             # Apply normalization/baseline
+            # Apply normalization/baseline
             opts = self.control_panel.get_fitting_options()
-            if opts["normalize"]: self.fitter.normalize_raw_data()
+            norm_range = opts.get("normalize_range", (None, None))
+            if opts["normalize"]: self.fitter.normalize_raw_data(norm_range)
             if self.fitter.baseline_method: self.fitter.apply_baseline_correction()
-            if opts["normalize"]: self.fitter.normalize_intensity()
+            
+            curr_comps = [c.copy() for c in self.fitter.components]
+            if opts["normalize"]:
+                # Manual intensity normalization to sync components
+                x = self.fitter.x
+                mask = np.ones_like(x, dtype=bool)
+                if norm_range[0] is not None: mask &= (x >= norm_range[0])
+                if norm_range[1] is not None: mask &= (x <= norm_range[1])
+                y_subset = self.fitter.y_corrected[mask] if np.any(mask) else self.fitter.y_corrected
+                max_val = np.max(y_subset) if len(y_subset) > 0 else 0
+                
+                if max_val > 0:
+                    scale = 1.0 / max_val
+                    self.fitter.y_corrected *= scale
+                    if self.fitter.norm_factor == 1.0: self.fitter.norm_factor = max_val
+                    for c in curr_comps:
+                        if 'params' in c and 'amplitude' in c['params']:
+                            c['params']['amplitude'] *= scale
             
             self.statusBar().showMessage("Evaluating...")
             
             # Create worker and run in thread pool
-            worker = EvalWorker(self.fitter, self.fitter.components.copy())
+            worker = EvalWorker(self.fitter, curr_comps)
             worker.signals.finished.connect(self._on_eval_complete)
             worker.signals.error.connect(self._on_eval_error)
             self.threadpool.start(worker)
@@ -528,13 +575,15 @@ class QtMainWindow(QMainWindow):
             self._sync_fitter()
             
             opts = self.control_panel.get_fitting_options()
-            if opts["normalize"]: self.fitter.normalize_raw_data()
+            norm_range = opts.get("normalize_range", (None, None))
+            if opts["normalize"]: self.fitter.normalize_raw_data(norm_range)
             
             # Always pre-apply baseline for consistent plotting
             if self.fitter.baseline_method:
                 self.fitter.apply_baseline_correction()
                 
-            if opts["normalize"]: self.fitter.normalize_intensity()
+            # Note: normalize_intensity removed here as it's handled post-fit
+
             if opts["non_negative"]: self.fitter.enable_negative_penalty()
 
             # Background thread execution
@@ -564,6 +613,29 @@ class QtMainWindow(QMainWindow):
         self.statusBar().showMessage("Fit Completed")
         
         try:
+            # Post-fit Normalization Scaling
+            opts = self.control_panel.get_fitting_options()
+            if opts["normalize"]:
+                norm_range = opts.get("normalize_range", (None, None))
+                x = self.fitter.x
+                mask = np.ones_like(x, dtype=bool)
+                if norm_range[0] is not None: mask &= (x >= norm_range[0])
+                if norm_range[1] is not None: mask &= (x <= norm_range[1])
+                y_subset = self.fitter.y_corrected[mask] if np.any(mask) else self.fitter.y_corrected
+                max_val = np.max(y_subset) if len(y_subset) > 0 else 0
+                
+                if max_val > 0:
+                    scale = 1.0 / max_val
+                    self.fitter.y_corrected *= scale
+                    result.best_fit *= scale
+                    result.residual *= scale
+                    # Scale parameters
+                    for pname in result.params:
+                        if 'amplitude' in pname: # Check if parameter is amplitude
+                            result.params[pname].value *= scale
+                            if result.params[pname].stderr:
+                                result.params[pname].stderr *= scale
+
             # Update UI
             stats = self.fitter.get_statistics()
             report = self.fitter.get_fit_report()
@@ -634,8 +706,13 @@ class QtMainWindow(QMainWindow):
         if params is None:
             params = init_evenly_spaced(self.x_data, n, y_init)
         
-        self.control_panel.component_panel.set_component_params(params)
-        self.statusBar().showMessage(f"Parameters re-initialized ({method})")
+        try:
+            self.control_panel.component_panel.set_component_params(params)
+            self.statusBar().showMessage(f"Parameters re-initialized ({method})")
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            QMessageBox.critical(self, "Initialization Error", f"Failed to set parameters: {str(e)}\n\nCheck console for details.")
 
     def export_results(self):
         """Save results and data to files."""
@@ -745,6 +822,10 @@ class QtMainWindow(QMainWindow):
         
         state = self.settings.value("windowState")
         if state: self.restoreState(state)
+        
+        # Enforce visibility of docks on startup to prevent "lost panel" issues
+        if self.control_dock: self.control_dock.setVisible(True)
+        if self.results_dock: self.results_dock.setVisible(True)
 
     def closeEvent(self, event):
         """Save settings on close."""

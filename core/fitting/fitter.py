@@ -233,16 +233,31 @@ class ProfileFitter:
         self.negative_penalty_enabled = True
         self.negative_penalty_weight = penalty_weight
     
-    def normalize_raw_data(self):
+    def normalize_raw_data(self, norm_range=(None, None)):
         """
         Normalize raw experimental data (self.y) to have maximum intensity of 1.0.
+        If norm_range (min_x, max_x) is provided, max intensity is found within range.
         
         This MUST be called BEFORE baseline correction if you want the baseline
         calculated on the normalized scale.
         """
         if self.normalized:
             return
-        max_intensity = np.max(self.y_work)
+            
+        # Determine max intensity (possibly within range)
+        y_subset = self.y_work
+        x_min, x_max = norm_range
+        indices = None
+        
+        if x_min is not None or x_max is not None:
+             mask = np.ones_like(self.x, dtype=bool)
+             if x_min is not None: mask &= (self.x >= x_min)
+             if x_max is not None: mask &= (self.x <= x_max)
+             indices = np.where(mask)[0]
+             if len(indices) > 0:
+                 y_subset = self.y_work[indices]
+        
+        max_intensity = np.max(y_subset)
         if max_intensity > 0:
             self.norm_factor = max_intensity
             self.y_work = self.y_work / max_intensity
@@ -253,14 +268,27 @@ class ProfileFitter:
         else:
             self.norm_factor = 1.0
             
-    def normalize_intensity(self):
+    def normalize_intensity(self, norm_range=(None, None)):
         """
         Deprecated: Use normalize_raw_data() instead for pre-baseline normalization.
         
         Normalize baseline-corrected data to have maximum intensity of 1.0.
         Baseline stays on the original scale (baseline_raw) per user expectation.
+        If norm_range (min_x, max_x) is provided, max intensity is found within range.
         """
-        max_intensity = np.max(self.y_corrected)
+        # Determine max intensity (possibly within range)
+        y_subset = self.y_corrected
+        x_min, x_max = norm_range
+        
+        if x_min is not None or x_max is not None:
+             mask = np.ones_like(self.x, dtype=bool)
+             if x_min is not None: mask &= (self.x >= x_min)
+             if x_max is not None: mask &= (self.x <= x_max)
+             indices = np.where(mask)[0]
+             if len(indices) > 0:
+                 y_subset = self.y_corrected[indices]
+
+        max_intensity = np.max(y_subset)
         if max_intensity > 0:
             # Only update if we haven't already normalized
             if self.norm_factor == 1.0:
