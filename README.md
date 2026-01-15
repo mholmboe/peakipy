@@ -32,7 +32,7 @@ A GUI application for fitting experimental X/Y data with multiple theoretical pe
   - *Z-Score*: Removes points where the y-value deviates more than a threshold (default 3.0) standard deviations from the mean.
   - *IQR*: Removes points outside the interquartile range bounds (Q1 - factor×IQR, Q3 + factor×IQR), with configurable factor (default 1.5).
 - **Smoothing**: Savitzky-Golay filter with configurable window length (5–51, odd) and polynomial order (1–5).
-- **Normalization**: Automatically scale intensities for consistent fitting.
+- **Normalization**: Automatically scale intensities for consistent fitting. Optionally specify a **range (Min X – Max X)** to normalize based on the maximum intensity within that range, allowing you to normalize to a specific reference peak rather than the global maximum.
 - **Non-Negative Constraints**: Ensure physically meaningful results with penalty-based constraints.
 
 ## Normal Workflow

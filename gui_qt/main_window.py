@@ -404,7 +404,6 @@ class QtMainWindow(QMainWindow):
                 y_proc = smooth_data(y_proc, window_length=window, polyorder=order)
             
             # Step 5: Normalization
-            # Step 5: Normalization
             if self.control_panel.norm_check.isChecked():
                 # Use range from inputs
                 opts = self.control_panel.get_fitting_options()
