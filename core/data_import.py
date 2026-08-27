@@ -1,9 +1,11 @@
 """
-Data import utilities for reading experimental data files. 
+Data import utilities for reading experimental data files.
 """
 
 import numpy as np
 import re
+
+from .xrd_formats import is_xrd_format, read_xrd_file
 
 
 def load_txt_file(filepath, delimiter=None, comments='#', skip_header=0):
@@ -134,35 +136,48 @@ def auto_detect_delimiter(filepath, max_lines=10):
     return None
 
 
-def load_data_file(filepath):
+def load_data_file(filepath, return_metadata=False):
     """
     Load data file with automatic format detection.
-    
+
+    Instrument-native XRD formats (PANalytical .xrdml, Bruker .brml/.uxd)
+    are dispatched by extension; anything else is treated as delimited text
+    (.txt, .dat, .xy, .csv, ...).
+
     Parameters
     ----------
     filepath : str
         Path to data file
-    
+    return_metadata : bool, optional
+        If True, also return the format-specific metadata dict (empty for
+        plain text files). Default False.
+
     Returns
     -------
     x : ndarray
         X-axis data
     y : ndarray
         Y-axis data
+    metadata : dict, optional
+        Only returned if `return_metadata` is True.
     """
+    if is_xrd_format(filepath):
+        x, y, metadata = read_xrd_file(filepath)
+        return (x, y, metadata) if return_metadata else (x, y)
+
     # Try automatic delimiter detection
     delimiter = auto_detect_delimiter(filepath)
-    
+
     try:
         x, y = load_txt_file(filepath, delimiter=delimiter)
-        return x, y
     except Exception as e:
         # Try without delimiter (whitespace-separated)
         try:
             x, y = load_txt_file(filepath, delimiter=None)
-            return x, y
         except:
             raise ValueError(f"Could not load data file: {e}")
+
+    return (x, y, {}) if return_metadata else (x, y)
 
 
 def validate_data(x, y):

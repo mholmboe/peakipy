@@ -362,7 +362,13 @@ class QtMainWindow(QMainWindow):
     def load_file(self):
         """Open file dialog and load data."""
         filename, _ = QFileDialog.getOpenFileName(
-            self, "Open Data File", "", "Text files (*.txt);;All files (*)"
+            self, "Open Data File", "",
+            "All supported (*.txt *.dat *.xy *.csv *.xrdml *.brml *.uxd);;"
+            "Text files (*.txt *.dat *.xy *.csv);;"
+            "PANalytical XRDML (*.xrdml);;"
+            "Bruker BRML (*.brml);;"
+            "Bruker UXD (*.uxd);;"
+            "All files (*)"
         )
         
         if filename:

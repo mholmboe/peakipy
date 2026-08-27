@@ -35,8 +35,12 @@ A GUI application for fitting experimental X/Y data with multiple theoretical pe
 - **Normalization**: Automatically scale intensities for consistent fitting. Optionally specify a **range (Min X – Max X)** to normalize based on the maximum intensity within that range, allowing you to normalize to a specific reference peak rather than the global maximum.
 - **Non-Negative Constraints**: Ensure physically meaningful results with penalty-based constraints.
 
+### Data Import
+- **Text formats**: Two-column X, Y data with auto-detected delimiter (space, tab, comma) and header skipping — `.txt`, `.dat`, `.xy`, `.csv`.
+- **XRD instrument formats**: PANalytical `.xrdml` (XML), Bruker `.brml` (zipped XML, DIFFRAC.SUITE), and Bruker `.uxd` (legacy text) are read natively, so 2θ/intensity powder patterns load without exporting to text first. Bruker's legacy binary `.raw` is not supported — export to `.uxd`/`.brml`/`.xy` from the instrument software.
+
 ## Normal Workflow
-1. **Load Data**: Click **📁 Load Data** and select a text file (two columns: X, Y). The X range auto-populates.
+1. **Load Data**: Click **📁 Load Data** and select a text file (two columns: X, Y) or a native XRD file (`.xrdml`, `.brml`, `.uxd`). The X range auto-populates.
 2. **Preprocess (optional)**: Set X min/max, enable interpolation (step size), and toggle normalization. Click **Apply** to update buffers and the plot.
 3. **Baseline**:
    - Pick a method. For **Manual**, click **Edit Baseline** on the plot and place 2–15 points; choose Linear/Cubic interpolation. For **Linear/Polynomial**, adjust slope/intercept or degree; for other methods, tweak their parameters.
@@ -57,8 +61,17 @@ python peakipy_batch.py "data/*.txt" \
   --profile gaussian --components 2 --centers 10,20 --sigmas 1,1 --amplitudes 1,0.8 \
   --optimize_baseline
 ```
+The glob pattern also matches native XRD files, so a folder of scans can be background-subtracted in one pass, e.g. `python peakipy_batch.py "data/*.xrdml" --baseline shirley ...` or `"data/*.brml"` / `"data/*.uxd"` — mixed extensions need one run per glob since they don't share a wildcard.
+
+Add `--baseline_only` to skip peak fitting entirely and just export the baseline-subtracted data (no `--profile`/`--components`/etc. needed):
+```bash
+python peakipy_batch.py "data/*.xrdml" --baseline shirley --baseline_only
+```
+Each input file gets a `<base>_data.txt` with `X, Y_Raw, Baseline, Y_Corrected` columns, and a `<base>_results.txt` recording the baseline method/params used.
+
 Key options:
-- `pattern`: Glob for input files (e.g., `"data/*.txt"`).
+- `pattern`: Glob for input files (e.g., `"data/*.txt"`, `"data/*.xrdml"`, `"data/*.brml"`, `"data/*.uxd"`).
+- `--baseline_only`: Compute and export the baseline-subtracted data only, no peak fit.
 - Preprocess: `--fit_min/--fit_max` to crop; `--interp_step` to resample to regular spacing; `--normalize` to scale intensities to max=1.
 - Outlier Removal: `--outlier_method` (zscore|iqr) with `--outlier_threshold` (default 3.0 for Z-score, 1.5 typical for IQR).
 - Smoothing: `--smooth` to enable Savitzky-Golay filter with `--smooth_window` (odd, 5-51, default 11) and `--smooth_order` (1-5, default 3).

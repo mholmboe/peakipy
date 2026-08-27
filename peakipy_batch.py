@@ -17,6 +17,8 @@ Notes:
     manual:    --manual_points x1:y1,x2:y2,...  --manual_interp linear|cubic
 - Components: provide per-component lists for centers, widths/sigmas/gammas, amplitudes.
 - Outputs: for each file, writes <base>_results.txt and <base>_data.txt alongside the input file.
+- --baseline_only: skip peak fitting entirely; just export the baseline-subtracted data
+    (X, Y_Raw, Baseline, Y_Corrected). Requires --baseline; ignores --profile/--components/etc.
 """
 
 import argparse
@@ -72,6 +74,9 @@ def parse_args():
     p.add_argument("--normalize", action="store_true", help="Normalize raw data before fitting")
     p.add_argument("--optimize_baseline", action="store_true", help="Optimize baseline simultaneously with peaks")
     p.add_argument("--max_nfev", type=int, default=None, help="Max function evals for optimizer")
+    p.add_argument("--baseline_only", action="store_true",
+                   help="Compute and export the baseline-subtracted data only; skip peak fitting "
+                        "entirely (requires --baseline, ignores --profile/--components/etc.)")
 
     # Outlier removal
     p.add_argument("--outlier_method", default=None, choices=["zscore", "iqr"],
@@ -106,6 +111,29 @@ def parse_points(arg):
         x_str, y_str = pair.split(":")
         pts.append((float(x_str), float(y_str)))
     return pts
+
+
+def export_baseline_only(base_path, fitter):
+    """Write X, Y_Raw, Baseline, Y_Corrected for a baseline-only run (no peak fit)."""
+    info_file = f"{base_path}_results.txt"
+    data_file = f"{base_path}_data.txt"
+
+    with open(info_file, "w") as f:
+        f.write("Baseline-only run (no peak fitting)\n\n")
+        f.write(f"baseline_method: {fitter.baseline_method}\n")
+        f.write(f"baseline_params: {fitter.baseline_params}\n")
+        f.write(f"baseline_range: {fitter.baseline_range}\n")
+
+    x = fitter.x
+    y_raw = fitter.y
+    baseline = fitter.baseline
+    y_corrected = fitter.y_corrected
+
+    header = "X\tY_Raw\tBaseline\tY_Corrected"
+    with open(data_file, "w") as f:
+        f.write(header + "\n")
+        for i in range(len(x)):
+            f.write(f"{x[i]:.6e}\t{y_raw[i]:.6e}\t{baseline[i]:.6e}\t{y_corrected[i]:.6e}\n")
 
 
 def export_results(base_path, fitter, result):
@@ -161,6 +189,9 @@ def build_fitter(x, y, args):
         fitter.baseline_range = (args.calc_min, args.calc_max)
         fitter.optimize_baseline = args.optimize_baseline
 
+    if args.baseline_only:
+        return fitter
+
     # Components
     n = args.components
     centers = parse_list(args.centers, n)
@@ -189,6 +220,9 @@ def build_fitter(x, y, args):
 
 def main():
     args = parse_args()
+    if args.baseline_only and not args.baseline:
+        print("--baseline_only requires --baseline", file=sys.stderr)
+        sys.exit(1)
     files = sorted(glob.glob(args.pattern))
     if not files:
         print(f"No files matched pattern: {args.pattern}")
@@ -221,9 +255,13 @@ def main():
             if args.normalize:
                 fitter.normalize_intensity()
 
-            result = fitter.fit(max_nfev=args.max_nfev, skip_baseline_correction=False)
-
             base, _ = os.path.splitext(fname)
+            if args.baseline_only:
+                export_baseline_only(base, fitter)
+                print(f"Processed {fname} (baseline only)")
+                continue
+
+            result = fitter.fit(max_nfev=args.max_nfev, skip_baseline_correction=False)
             export_results(base, fitter, result)
             print(f"Processed {fname}")
         except Exception as e:
